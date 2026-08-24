@@ -4,13 +4,17 @@ import { Play, Pause } from 'lucide-react';
 
 export function MusicPlayer({ isPlaying, toggleMusic }: { isPlaying: boolean, toggleMusic: () => void }) {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     if (audioRef.current) {
       if (isPlaying && audioRef.current.paused) {
         const playPromise = audioRef.current.play();
         if (playPromise !== undefined) {
-          playPromise.catch(e => console.log("Autoplay prevented or interrupted:", e));
+          playPromise.catch(e => {
+            console.log("Autoplay prevented or interrupted:", e);
+            if (e.name === 'NotSupportedError') setLoadError(true);
+          });
         }
       } else if (!isPlaying && !audioRef.current.paused) {
         audioRef.current.pause();
@@ -19,13 +23,17 @@ export function MusicPlayer({ isPlaying, toggleMusic }: { isPlaying: boolean, to
   }, [isPlaying]);
 
   const handleToggle = () => {
+    if (loadError) return;
     if (audioRef.current) {
       if (isPlaying) {
         audioRef.current.pause();
       } else {
         const playPromise = audioRef.current.play();
         if (playPromise !== undefined) {
-           playPromise.catch(e => console.log("Mobile play blocked:", e));
+           playPromise.catch(e => {
+             console.log("Mobile play blocked:", e);
+             setLoadError(true);
+           });
         }
       }
     }
@@ -34,18 +42,24 @@ export function MusicPlayer({ isPlaying, toggleMusic }: { isPlaying: boolean, to
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 p-6 bg-gradient-to-t from-[#0F1015] to-transparent pointer-events-none">
-      <div className="max-w-[480px] mx-auto pointer-events-auto">
+      <div className="max-w-[480px] mx-auto pointer-events-auto flex flex-col gap-2">
+        {loadError && (
+          <div className="bg-red-500/20 text-red-200 text-xs px-4 py-2 rounded-lg text-center backdrop-blur-md border border-red-500/30">
+            ⚠️ Ошибка: Песня не найдена. Проверьте файлы в GitHub.
+          </div>
+        )}
         <audio 
           ref={audioRef} 
           loop
           preload="auto"
           playsInline
-          src="/kapkan.mp3?v=2"
+          src="/kapkan.mp3"
+          onError={() => setLoadError(true)}
         />
         
         <button 
           onClick={handleToggle}
-          className="w-full text-left bg-bg-main/80 backdrop-blur-md border border-white/10 rounded-full py-3 px-6 flex items-center justify-between cursor-pointer hover:bg-bg-main/90 transition-colors"
+          className={`w-full text-left bg-bg-main/80 backdrop-blur-md border border-white/10 rounded-full py-3 px-6 flex items-center justify-between transition-colors ${loadError ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-bg-main/90'}`}
         >
           <div className="flex items-center gap-3">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isPlaying ? 'bg-accent-warm text-bg-main' : 'bg-white/10 text-white'}`}>

@@ -22,6 +22,9 @@ export function LetterView({ letter, onClose }: LetterViewProps) {
   const [isPlayingSecret, setIsPlayingSecret] = useState(false);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
 
+  const [audioError, setAudioError] = useState(false);
+  const [secretAudioError, setSecretAudioError] = useState(false);
+
   const [loadedImagesCount, setLoadedImagesCount] = useState(0);
   const [imagesLoading, setImagesLoading] = useState(false);
 
@@ -69,6 +72,7 @@ export function LetterView({ letter, onClose }: LetterViewProps) {
   }, [step, countdown, letter.type]);
 
   const toggleAudio = () => {
+    if (audioError) return;
     if (audioRef.current) {
       if (isPlayingAudio) {
         audioRef.current.pause();
@@ -85,6 +89,7 @@ export function LetterView({ letter, onClose }: LetterViewProps) {
           }).catch(e => {
             console.warn("Audio play interrupted:", e);
             setIsPlayingAudio(false);
+            setAudioError(true);
           });
         } else {
           setIsPlayingAudio(true);
@@ -94,6 +99,7 @@ export function LetterView({ letter, onClose }: LetterViewProps) {
   };
 
   const toggleSecretAudio = () => {
+    if (secretAudioError) return;
     if (secretAudioRef.current) {
       if (isPlayingSecret) {
         secretAudioRef.current.pause();
@@ -110,6 +116,7 @@ export function LetterView({ letter, onClose }: LetterViewProps) {
           }).catch(e => {
             console.warn("Audio play interrupted:", e);
             setIsPlayingSecret(false);
+            setSecretAudioError(true);
           });
         } else {
           setIsPlayingSecret(true);
@@ -372,8 +379,13 @@ export function LetterView({ letter, onClose }: LetterViewProps) {
         }
         return (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center justify-center min-h-[50vh] space-y-8 pt-8">
-            <button className="w-24 h-24 shrink-0 rounded-full bg-accent-warm/10 border border-accent-warm/30 flex items-center justify-center cursor-pointer shadow-[0_0_30px_rgba(232,184,199,0.15)] hover:bg-accent-warm/20 transition-colors" onClick={toggleAudio}>
-              <span className="text-4xl text-accent-warm ml-2">{isPlayingAudio ? '⏸' : '▶'}</span>
+            {audioError && (
+              <div className="bg-red-500/20 text-red-200 text-xs px-4 py-2 rounded-lg text-center backdrop-blur-md border border-red-500/30 max-w-[80%]">
+                ⚠️ Голосовое сообщение не найдено. Убедитесь, что файлы были загружены в GitHub.
+              </div>
+            )}
+            <button className={`w-24 h-24 shrink-0 rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(232,184,199,0.15)] transition-colors ${audioError ? 'bg-red-900/10 border-red-900/30 opacity-50 cursor-not-allowed text-red-500' : 'bg-accent-warm/10 border border-accent-warm/30 cursor-pointer hover:bg-accent-warm/20 text-accent-warm'}`} onClick={toggleAudio}>
+              <span className="text-4xl ml-2">{isPlayingAudio ? '⏸' : '▶'}</span>
             </button>
             <div className="flex gap-1 items-end h-8">
                {[...Array(12)].map((_, i) => (
@@ -382,13 +394,18 @@ export function LetterView({ letter, onClose }: LetterViewProps) {
             </div>
 
             {letter.id === '12' && (
-              <div className="mt-8 flex flex-col items-center space-y-4 pt-8 border-t border-white/5">
+              <div className="mt-8 flex flex-col items-center space-y-4 pt-8 border-t border-white/5 w-full">
+                {secretAudioError && (
+                  <div className="bg-red-500/20 text-red-200 text-xs px-4 py-2 rounded-lg text-center backdrop-blur-md border border-red-500/30 max-w-[80%]">
+                    ⚠️ Секретное аудио не найдено в GitHub.
+                  </div>
+                )}
                 <button 
                   onClick={toggleSecretAudio}
-                  className="px-6 py-4 bg-red-900/20 text-red-200 hover:text-white hover:bg-red-900/40 border border-red-900/50 rounded-full font-serif text-sm transition-all text-center flex items-center justify-center gap-3 shadow-[0_0_15px_rgba(127,29,29,0.2)]"
+                  className={`px-6 py-4 rounded-full font-serif text-sm transition-all text-center flex items-center justify-center gap-3 w-full max-w-sm ${secretAudioError ? 'bg-red-900/10 text-red-500/50 border-red-900/20 cursor-not-allowed' : 'bg-red-900/20 text-red-200 hover:text-white hover:bg-red-900/40 border border-red-900/50 shadow-[0_0_15px_rgba(127,29,29,0.2)]'}`}
                 >
                   <span className="text-xl flex-shrink-0">{isPlayingSecret ? '⏸' : '▶'}</span>
-                  <span>{isPlayingSecret ? 'Остановить сообщение' : 'Послушай, если тебе совсем плохо (только наедине)'}</span>
+                  <span className="leading-tight">{isPlayingSecret ? 'Остановить сообщение' : 'Послушай, если тебе совсем плохо (только наедине)'}</span>
                 </button>
                 {isPlayingSecret && (
                   <div className="flex gap-1 items-end h-4">
@@ -400,8 +417,8 @@ export function LetterView({ letter, onClose }: LetterViewProps) {
               </div>
             )}
 
-            {letter.audioPath && <audio ref={audioRef} src={letter.audioPath} preload="auto" playsInline onEnded={() => setIsPlayingAudio(false)} />}
-            {letter.id === '12' && <audio ref={secretAudioRef} src="/for_s.mp4" preload="auto" playsInline onEnded={() => setIsPlayingSecret(false)} />}
+            {letter.audioPath && <audio ref={audioRef} src={letter.audioPath} preload="auto" playsInline onEnded={() => setIsPlayingAudio(false)} onError={() => setAudioError(true)} />}
+            {letter.id === '12' && <audio ref={secretAudioRef} src="/for_s.mp4" preload="auto" playsInline onEnded={() => setIsPlayingSecret(false)} onError={() => setSecretAudioError(true)} />}
           </motion.div>
         );
 
