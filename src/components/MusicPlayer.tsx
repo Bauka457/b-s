@@ -4,19 +4,33 @@ import { Play, Pause } from 'lucide-react';
 
 export function MusicPlayer({ isPlaying, toggleMusic }: { isPlaying: boolean, toggleMusic: () => void }) {
   const audioRef = useRef<HTMLAudioElement>(null);
-  
+
   useEffect(() => {
     if (audioRef.current) {
-      if (isPlaying) {
+      if (isPlaying && audioRef.current.paused) {
         const playPromise = audioRef.current.play();
         if (playPromise !== undefined) {
           playPromise.catch(e => console.log("Autoplay prevented or interrupted:", e));
         }
-      } else {
+      } else if (!isPlaying && !audioRef.current.paused) {
         audioRef.current.pause();
       }
     }
   }, [isPlaying]);
+
+  const handleToggle = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+           playPromise.catch(e => console.log("Mobile play blocked:", e));
+        }
+      }
+    }
+    toggleMusic();
+  };
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 p-6 bg-gradient-to-t from-[#0F1015] to-transparent pointer-events-none">
@@ -24,12 +38,14 @@ export function MusicPlayer({ isPlaying, toggleMusic }: { isPlaying: boolean, to
         <audio 
           ref={audioRef} 
           loop
+          preload="auto"
+          playsInline
           src="/kapkan.mp3?v=2"
         />
         
-        <div 
-          onClick={toggleMusic}
-          className="bg-bg-main/80 backdrop-blur-md border border-white/10 rounded-full py-3 px-6 flex items-center justify-between cursor-pointer hover:bg-bg-main/90 transition-colors"
+        <button 
+          onClick={handleToggle}
+          className="w-full text-left bg-bg-main/80 backdrop-blur-md border border-white/10 rounded-full py-3 px-6 flex items-center justify-between cursor-pointer hover:bg-bg-main/90 transition-colors"
         >
           <div className="flex items-center gap-3">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${isPlaying ? 'bg-accent-warm text-bg-main' : 'bg-white/10 text-white'}`}>
@@ -64,7 +80,7 @@ export function MusicPlayer({ isPlaying, toggleMusic }: { isPlaying: boolean, to
               />
             ))}
           </div>
-        </div>
+        </button>
       </div>
     </div>
   );

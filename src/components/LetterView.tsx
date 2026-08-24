@@ -22,6 +22,36 @@ export function LetterView({ letter, onClose }: LetterViewProps) {
   const [isPlayingSecret, setIsPlayingSecret] = useState(false);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
 
+  const [loadedImagesCount, setLoadedImagesCount] = useState(0);
+  const [imagesLoading, setImagesLoading] = useState(false);
+
+  useEffect(() => {
+    const photos = letter.photoPaths || (letter.photoPath ? [letter.photoPath] : []);
+    if (photos.length > 0) {
+      setImagesLoading(true);
+      setLoadedImagesCount(0);
+      let loaded = 0;
+      const total = photos.length;
+      const targetLoadCount = Math.max(1, Math.floor(total * 0.8)); // Wait for 80%
+      
+      photos.forEach(src => {
+        const img = new Image();
+        img.src = src;
+        const onLoadOrError = () => {
+          loaded++;
+          setLoadedImagesCount(loaded);
+          if (loaded >= targetLoadCount) {
+             setImagesLoading(false);
+          }
+        };
+        img.onload = onLoadOrError;
+        img.onerror = onLoadOrError;
+      });
+    } else {
+      setImagesLoading(false);
+    }
+  }, [letter]);
+
   useEffect(() => {
     if (letter.type === 'surprise' && letter.randomMessages) {
       setRandomMsgIndex(Math.floor(Math.random() * letter.randomMessages.length));
@@ -171,6 +201,16 @@ export function LetterView({ letter, onClose }: LetterViewProps) {
             </div>
           );
         }
+        
+        if (imagesLoading) {
+          return (
+            <div className="flex flex-col items-center justify-center h-[50vh] space-y-6">
+               <div className="w-12 h-12 border-4 border-accent-warm border-t-transparent rounded-full animate-spin"></div>
+               <p className="font-serif text-accent-warm/70">Загружаем фото... ({loadedImagesCount}/{letter.photoPaths?.length || 1})</p>
+            </div>
+          );
+        }
+
         return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 2 }} className="space-y-8 flex flex-col items-center w-full">
             <p className="font-serif text-2xl text-center">
@@ -301,6 +341,16 @@ export function LetterView({ letter, onClose }: LetterViewProps) {
             </div>
           );
         }
+
+        if (imagesLoading) {
+          return (
+            <div className="flex flex-col items-center justify-center h-[50vh] space-y-6">
+               <div className="w-12 h-12 border-4 border-accent-warm border-t-transparent rounded-full animate-spin"></div>
+               <p className="font-serif text-accent-warm/70">Загружаем фото...</p>
+            </div>
+          );
+        }
+
         return (
           <motion.div initial={{ opacity: 0, filter: 'blur(10px)' }} animate={{ opacity: 1, filter: 'blur(0px)' }} transition={{ duration: 1.5 }} className="flex flex-col items-center space-y-6">
             <div className="p-3 bg-white/5 rounded-2xl border border-white/10">
@@ -322,9 +372,9 @@ export function LetterView({ letter, onClose }: LetterViewProps) {
         }
         return (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center justify-center min-h-[50vh] space-y-8 pt-8">
-            <div className="w-24 h-24 shrink-0 rounded-full bg-accent-warm/10 border border-accent-warm/30 flex items-center justify-center cursor-pointer shadow-[0_0_30px_rgba(232,184,199,0.15)] hover:bg-accent-warm/20 transition-colors" onClick={toggleAudio}>
+            <button className="w-24 h-24 shrink-0 rounded-full bg-accent-warm/10 border border-accent-warm/30 flex items-center justify-center cursor-pointer shadow-[0_0_30px_rgba(232,184,199,0.15)] hover:bg-accent-warm/20 transition-colors" onClick={toggleAudio}>
               <span className="text-4xl text-accent-warm ml-2">{isPlayingAudio ? '⏸' : '▶'}</span>
-            </div>
+            </button>
             <div className="flex gap-1 items-end h-8">
                {[...Array(12)].map((_, i) => (
                  <motion.div key={i} className="w-1.5 bg-accent-warm/50 rounded-full" animate={{ height: isPlayingAudio ? [8, Math.random() * 24 + 8, 8] : 4 }} transition={{ repeat: Infinity, duration: 0.5 + Math.random() * 0.5 }} />
